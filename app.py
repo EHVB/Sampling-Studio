@@ -14,19 +14,17 @@ def draw_signal(data, freq, sampling_freq):
     fig = plt.figure()
     time = data.iloc[:, 0]
     amplitude = data.iloc[:, 1]
-    plt.plot(time, amplitude,'-')
+    plt.plot(time, amplitude, '-')
     plt.title('Signal')
     plt.grid(True)
     ##########################################################################
     # sampling
     try:
-        frequency = freq
-        period = 1/frequency
-        no_cycles = data.iloc[:, 0].max()/period
+        time = data.iloc[:, 0].max()
         freq_sampling = sampling_freq
         no_points = data.shape[0]
-        points_per_cycle = no_points/no_cycles
-        step = points_per_cycle/freq_sampling
+        no_sample_points = sampling_freq*time
+        step = no_points/no_sample_points
         sampling_time = []
         sampling_amplitude = []
         if (freq_sampling == 1):
@@ -44,7 +42,7 @@ def draw_signal(data, freq, sampling_freq):
         sampling_points = pd.DataFrame(
             {"time": sampling_time, "amplitude": sampling_amplitude})
         plt.plot(
-                 sampling_points.iloc[:, 0], sampling_points.iloc[:, 1], "o")
+            sampling_points.iloc[:, 0], sampling_points.iloc[:, 1], "o")
     except:
         sampling_points = pd.DataFrame(
             {"time": [0, 0], "amplitude": [0, 0]})
@@ -119,14 +117,9 @@ def save_file(name):
     final_signal.to_csv("%s.csv" % name, index=False)
 
 
-def max_sampling(data, freq):
+def max_sampling(freq):
     if freq != 0:
-        frequency = freq
-        period = 1/frequency
-        no_cycles = data.iloc[:, 0].max()/period
-        no_points = data.shape[0]
-        points_per_cycle = no_points/no_cycles
-        return points_per_cycle
+        return 5*freq
     else:
         return 1
 
@@ -169,7 +162,7 @@ def body():
                 max_freq = st.number_input(
                     "Max Frequency", step=1, min_value=0)
                 sampling_slider = st.slider(
-                    "sampling frequency", min_value=0, max_value=int(max_sampling(data, max_freq)), value=2*max_freq, step=1)
+                    "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq)), value=2*max_freq, step=1)
                 add_noise = st.checkbox("Add Noise")
 
             if not add_noise:
@@ -221,6 +214,7 @@ def body():
                     st.session_state.signal_name.pop(index)
                     break
                 index += 1
+            st.experimental_rerun()
         draw()
         if len(st.session_state.signals) > 0:
             with st.sidebar:
