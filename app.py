@@ -1,4 +1,3 @@
-from turtle import color
 import streamlit as st
 from streamlit_option_menu import option_menu
 import pandas as pd
@@ -11,19 +10,20 @@ st. set_page_config(layout="wide")
 
 def draw_signal(data, freq, sampling_freq):
     # data = pd.read_csv(file)
-    fig = plt.figure()
+    fig = plt.figure(figsize=(1, 6))
+    plt.subplot(2, 1, 1)
     time = data.iloc[:, 0]
     amplitude = data.iloc[:, 1]
-    plt.plot(time, amplitude, '-')
+    plt.plot(time, amplitude, '-', label="original")
     plt.title('Signal')
     plt.grid(True)
     ##########################################################################
     # sampling
     try:
-        time = data.iloc[:, 0].max()
+        max_time = data.iloc[:, 0].max()
         freq_sampling = sampling_freq
         no_points = data.shape[0]
-        no_sample_points = sampling_freq*time
+        no_sample_points = sampling_freq*max_time
         step = no_points/no_sample_points
         sampling_time = []
         sampling_amplitude = []
@@ -42,11 +42,20 @@ def draw_signal(data, freq, sampling_freq):
         sampling_points = pd.DataFrame(
             {"time": sampling_time, "amplitude": sampling_amplitude})
         plt.plot(
-            sampling_points.iloc[:, 0], sampling_points.iloc[:, 1], "o")
+            sampling_points.iloc[:, 0], sampling_points.iloc[:, 1], "o", color="black", label="sampling points")
+        plt.xlabel("time(s)")
+        plt.ylabel("amplitude(mv)")
+        plt.subplot(2, 1, 2)
+        plt.title("reconstructed signal")
+        ynew = reconstruction(data, sampling_points)
+        plt.plot(time, ynew, "r", label="reconstructed")
+        plt.grid(True)
     except:
         sampling_points = pd.DataFrame(
             {"time": [0, 0], "amplitude": [0, 0]})
-    fig.legend()
+    plt.xlabel("time(s)")
+    plt.ylabel("amplitude(mv)")
+    plt.subplots_adjust(hspace=0.4)
     st.plotly_chart(fig, use_container_width=True)
     return sampling_points
 
@@ -59,14 +68,15 @@ def reconstruction(signal, sample):
     sincM = np.tile(time, (len(sampled_time), 1)) - \
         np.tile(sampled_time[:, np.newaxis], (1, len(time)))
     yNew = np.dot(sampled_amplitude, np.sinc(sincM/T))
+    return yNew
     # plt.subplot(212)
-    fig = plt.figure()
-    plt.plot(time, yNew, label="Reconstructed Signal")
-    # plt.scatter(
-    #     sampled_time, sampled_amplitude, color='r', label="Sampling Points", marker='x')
-    fig.legend()
-    plt.title("Reconstructed Signal")
-    st.plotly_chart(fig, use_container_width=True)
+    # fig = plt.figure()
+    # plt.plot(time, yNew, label="Reconstructed Signal")
+    # # plt.scatter(
+    # #     sampled_time, sampled_amplitude, color='r', label="Sampling Points", marker='x')
+    # fig.legend()
+    # plt.title("Reconstructed Signal")
+    # st.plotly_chart(fig, use_container_width=True)
 
 
 def noise(data, snr_db):
@@ -126,14 +136,14 @@ def max_sampling(freq):
 
 def head():
     st.markdown("""
-        <h1 style='text-align: center; margin-bottom: -35px;'>
+        <h1 style='text-align: center; margin-bottom: -35px; margin-top:-80px'>
         Sampling Studio
         </h1>
     """, unsafe_allow_html=True
                 )
 
     st.caption("""
-        <p style='text-align: center'>
+        <p style='text-align: center; margin-top:-20px'>
         by team 25
         </p>
     """, unsafe_allow_html=True
