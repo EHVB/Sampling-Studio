@@ -238,7 +238,7 @@ def body():
         if plot_add:
             if name in st.session_state.signal_name:
                 st.error("this name is already used")
-            if name == "":
+            elif name == "":
                 st.error("invalid name")
             else:
                 st.session_state.signals.append([name, amplitude, freq, phase])
