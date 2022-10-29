@@ -9,9 +9,12 @@ st. set_page_config(layout="wide")
 
 with open("style.css") as source_des:
     st.markdown(f"<style>{source_des.read()}</style>", unsafe_allow_html=True)
+    
+# with open("action.js") as source_des:
+#     st.markdown(f"<style>{source_des.read()}</style>", unsafe_allow_html=True)
 
 
-def draw_signal(data, freq, sampling_freq):
+def draw_signal(data, freq=0, sampling_freq=0):
     # data = pd.read_csv(file)
     fig = plt.figure(figsize=(1, 6))
     plt.subplot(2, 1, 1)
@@ -82,21 +85,6 @@ def reconstruction(signal, sample):
     # st.plotly_chart(fig, use_container_width=True)
 
 
-def noise(data, snr_db):
-    signal = data.iloc[:, 1]
-    power = (signal)**2
-    signal_power_db = 10 * np.log10(power)
-    signal_avg_power = np.mean(power)
-    signal_avg_power_db = 10 * np.log10(signal_avg_power)
-    noise_db = signal_avg_power_db - snr_db
-    noise_watts = 10**(noise_db/10)
-    signal_noise = np.random.normal(0, np.sqrt(noise_watts), len(signal))
-    noised_signal = signal + signal_noise
-    noised = pd.DataFrame(
-        {"time": data.iloc[:, 0], "amplitude": noised_signal})
-    return noised
-
-
 # def draw():
 #     if len(st.session_state.signals) > 0:
 #         mixed_fig = plt.figure()
@@ -145,28 +133,50 @@ def max_sampling(freq):
         return 1
 
 
+def noise(data, snr_db):
+    signal = data.iloc[:, 1]
+    power = (signal)**2
+    signal_power_db = 10 * np.log10(power)
+    signal_avg_power = np.mean(power)
+    signal_avg_power_db = 10 * np.log10(signal_avg_power)
+    noise_db = signal_avg_power_db - snr_db
+    noise_watts = 10**(noise_db/10)
+    signal_noise = np.random.normal(0, np.sqrt(noise_watts), len(signal))
+    noised_signal = signal + signal_noise
+    noised = pd.DataFrame(
+        {"time": data.iloc[:, 0], "amplitude": noised_signal})
+    return noised
+
+
 def convert_to_dataframe():
-    time = np.linspace(0, 10, 10000)
+    if "signal_file" in st.session_state:
+        time = st.session_state.signal_file.iloc[:, 0]
+        amplitude_file = st.session_state.signal_file.iloc[:, 1]
+    else:
+        time = np.linspace(0, 10, 10000)
+        amplitude_file = 0
     mixed_signal = 0
     for sig in st.session_state.signals:
         if sig[3] == "sin":
             mixed_signal += sig[1] * np.sin(2*np.pi*sig[2]*time)
         else:
             mixed_signal += sig[1] * np.cos(2*np.pi*sig[2]*time)
-    data_frame = pd.DataFrame({"time": time, "amplitude": mixed_signal})
+    mixed_signal_with_file = mixed_signal + amplitude_file
+    data_frame = pd.DataFrame(
+        {"time": time, "amplitude": mixed_signal_with_file})
     return data_frame
 
 
 def head():
     st.markdown("""
-        <h1 style='text-align: center; margin-bottom: -35px; margin-top:-80px'>
+        <h1 style='text-align: center; margin-bottom: -35px; margin-top:-114px'>
         Sampling Studio
         </h1>
     """, unsafe_allow_html=True
                 )
 
     st.caption("""
-        <p style='text-align: center; margin-top:-20px'>
+        <p style='text-align: center; margin-top:-20px ; position: relative; margin-top:-58px;'>
         by team 25
         </p>
     """, unsafe_allow_html=True
@@ -174,67 +184,78 @@ def head():
 
 
 def body():
+    # with st.sidebar:
+    #     selected = option_menu(
+    #         menu_title=None,
+    #         options=["Home", "Mixer"]
+    # )
+    # if selected == "Home":
+    # with st.sidebar:
+    #     file = st.file_uploader("Upload file", type="csv")
+
+    # if not file:
+    #     data = pd.DataFrame({"x": [0, 0, 0], "y": [0, 0, 0]})
+    #     original_fig = px.line(
+    #         data, x=data.columns[0], y=data.columns[1], title="Signal")
+    #     st.plotly_chart(original_fig, use_container_width=True)
+
+    # if file:
+    #     data = pd.read_csv(file)
+    #     with st.sidebar:
+    #         max_freq = st.number_input(
+    #             "Max Frequency", step=1, min_value=0, value=2)
+    #         sampling_slider = st.slider(
+    #             "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq)), value=2*max_freq, step=1)
+    #         add_noise = st.checkbox("Add Noise")
+
+    #     if not add_noise:
+    #         sampling_points = draw_signal(data, max_freq, sampling_slider)
+    #         if sampling_slider > 0:
+    #             reconstruction(data, sampling_points)
+
+    #     if add_noise:
+    #         with st.sidebar:
+    #             noise_slider = st.slider(
+    #                 "Noise SNR", min_value=0, max_value=100, value=25, step=1)
+    #         noised_data = noise(data, noise_slider)
+    #         sampling_points = draw_signal(
+    #             noised_data, max_freq, sampling_slider)
+    #         if sampling_slider > 0:
+    #             reconstruction(noised_data, sampling_points)
+
+    # if selected == "Mixer":
+    if "signals" not in st.session_state:
+        st.session_state.signals = []
+    if "signal_name" not in st.session_state:
+        st.session_state.signal_name = []
+
+    file = st.file_uploader("Upload file", type="csv")
     with st.sidebar:
-        selected = option_menu(
-            menu_title=None,
-            options=["Home", "Mixer"]
-        )
-    if selected == "Home":
-        with st.sidebar:
-            file = st.file_uploader("Upload file", type="csv")
+        form = st.form("signal_form")
+        with form:
+            col4, col3 = st.columns(2)
+            with col3:
+                name = st.text_input("Signal Name")
+            with col4:
+                phase = st.selectbox("type signal", ["sin", "cos"], key=1)
+            col1, col2 ,col3 = st.columns(3)
+            with col1:
+                amplitude = st.slider(
+                    "Amplitude", min_value=0, max_value=20)
+            with col2:
+                freq = st.slider("Frequency", min_value=0, max_value=10)
+            with col3:
+                plot_add = st.form_submit_button("Add")
 
-        if not file:
-            data = pd.DataFrame({"x": [0, 0, 0], "y": [0, 0, 0]})
-            original_fig = px.line(
-                data, x=data.columns[0], y=data.columns[1], title="Signal")
-            st.plotly_chart(original_fig, use_container_width=True)
+    if (not file) and (len(st.session_state.signals) == 0):
+        data = pd.DataFrame({"x": [0, 0, 0], "y": [0, 0, 0]})
+        draw_signal(data, freq=0, sampling_freq=0)
 
+    if file or len(st.session_state.signals) > 0 :
         if file:
-            data = pd.read_csv(file)
-            with st.sidebar:
-                max_freq = st.number_input(
-                    "Max Frequency", step=1, min_value=0, value=2)
-                sampling_slider = st.slider(
-                    "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq)), value=2*max_freq, step=1)
-                add_noise = st.checkbox("Add Noise")
-
-            if not add_noise:
-                sampling_points = draw_signal(data, max_freq, sampling_slider)
-                if sampling_slider > 0:
-                    reconstruction(data, sampling_points)
-
-            if add_noise:
-                with st.sidebar:
-                    noise_slider = st.slider(
-                        "Noise SNR", min_value=0, max_value=100, value=25, step=1)
-                noised_data = noise(data, noise_slider)
-                sampling_points = draw_signal(
-                    noised_data, max_freq, sampling_slider)
-                if sampling_slider > 0:
-                    reconstruction(noised_data, sampling_points)
-    if selected == "Mixer":
-        if "signals" not in st.session_state:
-            st.session_state.signals = []
-        if "signal_name" not in st.session_state:
-            st.session_state.signal_name = []
-
-        with st.sidebar:
-            form = st.form("signal_form")
-            with form:
-                col3, col4, col5 = st.columns(3)
-                with col3:
-                    name = st.text_input("Signal Name")
-                with col4:
-                    phase = st.selectbox("type signal", ["sin", "cos"], key=1)
-                with col5:
-                    plot_add = st.form_submit_button("Add & Plot")
-                col1, col2 = st.columns(2)
-                with col1:
-                    amplitude = st.slider(
-                        "Amplitude", min_value=0, max_value=20)
-                with col2:
-                    freq = st.slider("Frequency", min_value=0, max_value=10)
-        # draw()
+            if "siganl_file" not in st.session_state:
+                data = pd.read_csv(file)
+                st.session_state.signal_file = data
         if plot_add:
             if name in st.session_state.signal_name:
                 st.error("this name is already used")
@@ -247,9 +268,13 @@ def body():
         with st.sidebar:
             delete_form = st.form("delete_form")
             with delete_form:
-                to_be_deleted = st.selectbox(
-                    "Select Signal", st.session_state.signal_name)
-                delete = st.form_submit_button("Delete Signal")
+                col13,col14=st.columns(2)
+                with col13:
+                    to_be_deleted = st.selectbox("Select Signal", st.session_state.signal_name)
+                    
+                with col14:
+                    delete = st.form_submit_button("Delete Signal")
+                
         if delete:
             index = 0
             for sig in st.session_state.signal_name:
@@ -259,46 +284,85 @@ def body():
                     break
                 index += 1
             st.experimental_rerun()
-        # draw()
-
-        # here add noise , sampling and construction for composer
-
-        if len(st.session_state.signals) > 0:
-            data_compose = convert_to_dataframe()
-            with st.sidebar:
+        data_compose = convert_to_dataframe()
+        with st.sidebar:
+            col9, col10 = st.columns(2)
+            with col9:
                 max_freq_compose = st.number_input(
-                    "Max Frequency", step=1, min_value=0, value=freq*2)
+                    "Max Frequency", step=1, min_value=0, value=4)
+            with col10:
                 sampling_slider_compose = st.slider(
                     "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq_compose)), value=2*max_freq_compose, step=1)
+            col11 , col12 = st.columns(2)
+            with col11:
                 add_noise_compose = st.checkbox("Add Noise")
-            if not add_noise_compose:
-                sampling_points_compose = draw_signal(
-                    data_compose, max_freq_compose, sampling_slider_compose)
-                if sampling_slider_compose > 0:
-                    reconstruction(data_compose, sampling_points_compose)
-
-            if add_noise_compose:
-                with st.sidebar:
+        if not add_noise_compose:
+            sampling_points_compose = draw_signal(
+                data_compose, max_freq_compose, sampling_slider_compose)
+            if sampling_slider_compose > 0:
+                reconstruction(data_compose, sampling_points_compose)
+        if add_noise_compose:
+            with st.sidebar:
+                with col12:
                     noise_slider = st.slider(
                         "Noise SNR", min_value=0, max_value=100, value=25, step=1)
-                noised_data_compose = noise(data_compose, noise_slider)
-                sampling_points_compose = draw_signal(
-                    noised_data_compose, max_freq_compose, sampling_slider_compose)
-                if sampling_slider_compose > 0:
-                    reconstruction(noised_data_compose,
-                                   sampling_points_compose)
-            with st.sidebar:
-                save_form = st.form("save_form")
-                with save_form:
-                    col6, col7 = st.columns(2)
-                    with col6:
-                        name = st.text_input("File Name")
-                    with col7:
-                        save = st.form_submit_button("Save")
-                if save:
-                    save_file(name)
+            noised_data_compose = noise(data_compose, noise_slider)
+            sampling_points_compose = draw_signal(
+                noised_data_compose, max_freq_compose, sampling_slider_compose)
+            if sampling_slider_compose > 0:
+                reconstruction(noised_data_compose,
+                               sampling_points_compose)
+        with st.sidebar:
+            save_form = st.form("save_form")
+            with save_form:
+                col6, col7 = st.columns(2)
+                with col6:
+                    name = st.text_input("File Name")
+                with col7:
+                    save = st.form_submit_button("Save")
+            if save:
+                save_file(name)
 
+    # draw()
 
+    # draw()
+
+    # here add noise , sampling and construction for composer
+
+    # if len(st.session_state.signals) > 0:
+    #     with st.sidebar:
+    #         max_freq_compose = st.number_input(
+    #             "Max Frequency", step=1, min_value=0, value=freq*2)
+    #         sampling_slider_compose = st.slider(
+    #             "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq_compose)), value=4, step=1)
+    #         add_noise_compose = st.checkbox("Add Noise")
+    #     data_compose = convert_to_dataframe()
+    #     if not add_noise_compose:
+    #         sampling_points_compose = draw_signal(
+    #             data_compose, max_freq_compose, sampling_slider_compose)
+    #         if sampling_slider_compose > 0:
+    #             reconstruction(data_compose, sampling_points_compose)
+
+    #     if add_noise_compose:
+    #         with st.sidebar:
+    #             noise_slider = st.slider(
+    #                 "Noise SNR", min_value=0, max_value=100, value=25, step=1)
+    #         noised_data_compose = noise(data_compose, noise_slider)
+    #         sampling_points_compose = draw_signal(
+    #             noised_data_compose, max_freq_compose, sampling_slider_compose)
+    #         if sampling_slider_compose > 0:
+    #             reconstruction(noised_data_compose,
+    #                            sampling_points_compose)
+    #     with st.sidebar:
+    #         save_form = st.form("save_form")
+    #         with save_form:
+    #             col6, col7 = st.columns(2)
+    #             with col6:
+    #                 name = st.text_input("File Name")
+    #             with col7:
+    #                 save = st.form_submit_button("Save")
+    #         if save:
+    #             save_file(name)
 if __name__ == "__main__":
     head()
     body()
