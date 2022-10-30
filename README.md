@@ -6,13 +6,13 @@
  ## Description
  This app allows the user to :
  - Add signals as a CSV file.
- - Generate sin and cos waves with customizable frequency and amplitude .
+ - Generate sin and cos waves with customizable frequency and amplitude.
  - Sample with varying Fs and reconstruct the sampled signal.
  - Add multiple signals and plotting them.
  - Add noise with variable SNR value.
  - Download the reconstructed signal as CSV file. 
  
- ## Dependincies
+ ## Dependencies
  Python 3.10
  #### used libraries
  - streamlit
