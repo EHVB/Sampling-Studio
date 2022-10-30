@@ -2,7 +2,10 @@
 ### October 2022
 
 ## Team members
-All members are in section 1
-- Ahmed Ashraf  **3**
-- Aya Amr       **17**
-- Ehab Kamal    **19**
+
+| Name  | Section | B.N |
+| ------------- | ------------- | ------------- |
+| Ahmed Ashraf  | 1  | 3 |
+| Aya Amr  | 1  | 17 |
+| Ehab Kamal | 1 | 19 |
+
