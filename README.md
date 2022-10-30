@@ -1,4 +1,5 @@
-### DSP_Task1_Team25
+### [ DSP_Task1_Team25 ](https://github.com/EHVB/DSP_Task1_Team25/blob/main/task_info.md)
+
 # Signal Studio
 #### Streamlit python app for signal sampling and reconstruction.
  
