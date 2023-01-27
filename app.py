@@ -5,15 +5,15 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import numpy as np
 
+# set page layout to wide
 st. set_page_config(layout="wide")
 
+# upload css file
 with open("style.css") as source_des:
     st.markdown(f"<style>{source_des.read()}</style>", unsafe_allow_html=True)
     
-# with open("action.js") as source_des:
-#     st.markdown(f"<style>{source_des.read()}</style>", unsafe_allow_html=True)
-
-
+# draw_signal 
+# arguments: data: dataframe 
 def draw_signal(data, freq=0, sampling_freq=0):
     # data = pd.read_csv(file)
     fig = plt.figure(figsize=(1, 6))
@@ -75,53 +75,22 @@ def reconstruction(signal, sample):
         np.tile(sampled_time[:, np.newaxis], (1, len(time)))
     yNew = np.dot(sampled_amplitude, np.sinc(sincM/T))
     return yNew
-    # plt.subplot(212)
-    # fig = plt.figure()
-    # plt.plot(time, yNew, label="Reconstructed Signal")
-    # # plt.scatter(
-    # #     sampled_time, sampled_amplitude, color='r', label="Sampling Points", marker='x')
-    # fig.legend()
-    # plt.title("Reconstructed Signal")
-    # st.plotly_chart(fig, use_container_width=True)
-
-
-# def draw():
-#     if len(st.session_state.signals) > 0:
-#         mixed_fig = plt.figure()
-#         signals_fig = plt.figure()
-#         time = np.linspace(0, 10, 10000)
-#         mixed_signal = 0
-#         for sig in st.session_state.signals:
-#             if sig[3]=="sin":
-#                 mixed_signal += sig[1] * np.sin(2*np.pi*sig[2]*time)
-#             else:
-#                 mixed_signal += sig[1] * np.cos(2*np.pi*sig[2]*time)
-#         for sig in st.session_state.signals:
-#             if sig[3]=="sin":
-#                 signal = sig[1] * np.sin(2*np.pi*sig[2]*time)
-#             else:
-#                 signal = sig[1] * np.cos(2*np.pi*sig[2]*time)
-#             plt.plot(time, signal, label=sig[0])
-#         plt.legend()
-#         st.plotly_chart(signals_fig, use_container_width=True)
-#         plt.plot(time, mixed_signal)
-#         st.plotly_chart(mixed_fig, use_container_width=True)
-#     else:
-#         time = [0, 0, 0]
-#         signal = [0, 0, 0]
-#         empty = plt.figure()
-#         plt.plot(time, signal)
-#         st.plotly_chart(empty, use_container_width=True)
 
 
 def save_file(name):
-    time = np.linspace(0, 10, 10000)
+    if "signal_file" in st.session_state:
+        time = st.session_state.signal_file.iloc[:, 0]
+        amplitude_file = st.session_state.signal_file.iloc[:, 1]
+    else:
+        time = np.linspace(0, 10, 10000)
+        amplitude_file = np.zeros(len(time))
     mixed_signal = 0
     for sig in st.session_state.signals:
         if sig[3] == "sin":
             mixed_signal += sig[1] * np.sin(2*np.pi*sig[2]*time)
         else:
             mixed_signal += sig[1] * np.cos(2*np.pi*sig[2]*time)
+    mixed_signal = mixed_signal + amplitude_file
     final_signal = pd.DataFrame({"time": time, "amplitude": mixed_signal})
     final_signal.to_csv("%s.csv" % name, index=False)
 
@@ -154,7 +123,7 @@ def convert_to_dataframe():
         amplitude_file = st.session_state.signal_file.iloc[:, 1]
     else:
         time = np.linspace(0, 10, 10000)
-        amplitude_file = 0
+        amplitude_file = np.zeros(len(time))
     mixed_signal = 0
     for sig in st.session_state.signals:
         if sig[3] == "sin":
@@ -176,7 +145,7 @@ def head():
                 )
 
     st.caption("""
-        <p style='text-align: center; margin-top:-20px ; position: relative; margin-top:-58px;'>
+        <p style='text-align: center; margin-top:20px ; position: relative; margin-top:-58px;'>
         by team 25
         </p>
     """, unsafe_allow_html=True
@@ -184,86 +153,51 @@ def head():
 
 
 def body():
-    # with st.sidebar:
-    #     selected = option_menu(
-    #         menu_title=None,
-    #         options=["Home", "Mixer"]
-    # )
-    # if selected == "Home":
-    # with st.sidebar:
-    #     file = st.file_uploader("Upload file", type="csv")
-
-    # if not file:
-    #     data = pd.DataFrame({"x": [0, 0, 0], "y": [0, 0, 0]})
-    #     original_fig = px.line(
-    #         data, x=data.columns[0], y=data.columns[1], title="Signal")
-    #     st.plotly_chart(original_fig, use_container_width=True)
-
-    # if file:
-    #     data = pd.read_csv(file)
-    #     with st.sidebar:
-    #         max_freq = st.number_input(
-    #             "Max Frequency", step=1, min_value=0, value=2)
-    #         sampling_slider = st.slider(
-    #             "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq)), value=2*max_freq, step=1)
-    #         add_noise = st.checkbox("Add Noise")
-
-    #     if not add_noise:
-    #         sampling_points = draw_signal(data, max_freq, sampling_slider)
-    #         if sampling_slider > 0:
-    #             reconstruction(data, sampling_points)
-
-    #     if add_noise:
-    #         with st.sidebar:
-    #             noise_slider = st.slider(
-    #                 "Noise SNR", min_value=0, max_value=100, value=25, step=1)
-    #         noised_data = noise(data, noise_slider)
-    #         sampling_points = draw_signal(
-    #             noised_data, max_freq, sampling_slider)
-    #         if sampling_slider > 0:
-    #             reconstruction(noised_data, sampling_points)
-
-    # if selected == "Mixer":
     if "signals" not in st.session_state:
         st.session_state.signals = []
+        st.session_state.signals.append(["default",1,1,"sin"])
     if "signal_name" not in st.session_state:
         st.session_state.signal_name = []
-
+        st.session_state.signal_name.append("default")
     file = st.file_uploader("Upload file", type="csv")
     with st.sidebar:
         form = st.form("signal_form")
         with form:
             col4, col3 = st.columns(2)
             with col3:
-                name = st.text_input("Signal Name")
+                name = st.text_input("Signal Name",value="untitled")
             with col4:
                 phase = st.selectbox("type signal", ["sin", "cos"], key=1)
             col1, col2 ,col3 = st.columns(3)
             with col1:
-                amplitude = st.slider(
-                    "Amplitude", min_value=0, max_value=20)
+                freq = st.slider("Frequency", min_value=0, max_value=20 ,value =1)
             with col2:
-                freq = st.slider("Frequency", min_value=0, max_value=10)
+                amplitude = st.slider(
+                    "Amplitude", min_value=-0, max_value=20 , value = 1 , step = 1)
             with col3:
                 plot_add = st.form_submit_button("Add")
 
     if (not file) and (len(st.session_state.signals) == 0):
         data = pd.DataFrame({"x": [0, 0, 0], "y": [0, 0, 0]})
         draw_signal(data, freq=0, sampling_freq=0)
-
+        
+    if plot_add:
+            if name in st.session_state.signal_name:
+                with st.sidebar:
+                    st.error("this name is already used")
+            elif name == "":  
+                with st.sidebar:     
+                    st.error("invalid name")
+            else:
+                st.session_state.signals.append([name, amplitude, freq, phase])
+                st.session_state.signal_name.append(name)
+                st.experimental_rerun()
+            
     if file or len(st.session_state.signals) > 0 :
         if file:
             if "siganl_file" not in st.session_state:
                 data = pd.read_csv(file)
                 st.session_state.signal_file = data
-        if plot_add:
-            if name in st.session_state.signal_name:
-                st.error("this name is already used")
-            elif name == "":
-                st.error("invalid name")
-            else:
-                st.session_state.signals.append([name, amplitude, freq, phase])
-                st.session_state.signal_name.append(name)
 
         with st.sidebar:
             delete_form = st.form("delete_form")
@@ -289,7 +223,7 @@ def body():
             col9, col10 = st.columns(2)
             with col9:
                 max_freq_compose = st.number_input(
-                    "Max Frequency", step=1, min_value=0, value=4)
+                    "Max Frequency", step=1, min_value=0, value=2)
             with col10:
                 sampling_slider_compose = st.slider(
                     "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq_compose)), value=2*max_freq_compose, step=1)
@@ -323,46 +257,6 @@ def body():
             if save:
                 save_file(name)
 
-    # draw()
-
-    # draw()
-
-    # here add noise , sampling and construction for composer
-
-    # if len(st.session_state.signals) > 0:
-    #     with st.sidebar:
-    #         max_freq_compose = st.number_input(
-    #             "Max Frequency", step=1, min_value=0, value=freq*2)
-    #         sampling_slider_compose = st.slider(
-    #             "sampling frequency", min_value=0, max_value=int(max_sampling(max_freq_compose)), value=4, step=1)
-    #         add_noise_compose = st.checkbox("Add Noise")
-    #     data_compose = convert_to_dataframe()
-    #     if not add_noise_compose:
-    #         sampling_points_compose = draw_signal(
-    #             data_compose, max_freq_compose, sampling_slider_compose)
-    #         if sampling_slider_compose > 0:
-    #             reconstruction(data_compose, sampling_points_compose)
-
-    #     if add_noise_compose:
-    #         with st.sidebar:
-    #             noise_slider = st.slider(
-    #                 "Noise SNR", min_value=0, max_value=100, value=25, step=1)
-    #         noised_data_compose = noise(data_compose, noise_slider)
-    #         sampling_points_compose = draw_signal(
-    #             noised_data_compose, max_freq_compose, sampling_slider_compose)
-    #         if sampling_slider_compose > 0:
-    #             reconstruction(noised_data_compose,
-    #                            sampling_points_compose)
-    #     with st.sidebar:
-    #         save_form = st.form("save_form")
-    #         with save_form:
-    #             col6, col7 = st.columns(2)
-    #             with col6:
-    #                 name = st.text_input("File Name")
-    #             with col7:
-    #                 save = st.form_submit_button("Save")
-    #         if save:
-    #             save_file(name)
 if __name__ == "__main__":
     head()
     body()
